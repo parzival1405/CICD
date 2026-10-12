@@ -1,0 +1,56 @@
+name: Hello CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    outputs:
+      short-sha: ${{ steps.sha.outputs.short }}
+    steps:
+      - name: In thong tin event
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Nhanh/tag: ${{ github.ref_name }}"
+          echo "Commit: $GITHUB_SHA"
+          echo "Nguoi kich hoat: ${{ github.actor }}"
+          echo "He dieu hanh runner: $RUNNER_OS"
+
+      - name: Thong tin may runner
+        run: |
+          whoami
+          pwd
+          ls -la
+          nproc
+          free -h
+          df -h /
+          java -version
+          docker --version
+
+      - name: Tinh short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Dung output cua step truoc
+        run: echo "Short SHA la ${{ steps.sha.outputs.short }}"
+
+  build:
+    needs: info
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: wallet-service
+    steps:
+      - name: Truoc khi checkout
+        run: ls -la
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Sau khi checkout
+        run: |
+          ls -la
+          echo "Build $APP_NAME tai commit ${{ needs.info.outputs.short-sha }}"
+          git log --oneline -3
