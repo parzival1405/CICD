@@ -35,4 +35,4 @@ build/
 ### Local secrets ###
 .env
 *.env
-build.log
+build.log*.log

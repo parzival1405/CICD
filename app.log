@@ -1,0 +1,26 @@
+nohup: ignoring input
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+2026-10-11T12:45:35.310Z  INFO 3826 --- [wallet-service] [           main] c.e.wallet.WalletServiceApplication      : Starting WalletServiceApplication v0.0.3 using Java 21.0.12.1 with PID 3826 (/home/bqhuu130375/lab/wallet-service/target/wallet-service-0.0.3.jar started by bqhuu130375 in /home/bqhuu130375/lab/wallet-service)
+2026-10-11T12:45:35.313Z  INFO 3826 --- [wallet-service] [           main] c.e.wallet.WalletServiceApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-10-11T12:45:36.501Z  INFO 3826 --- [wallet-service] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-10-11T12:45:36.512Z  INFO 3826 --- [wallet-service] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-11T12:45:36.513Z  INFO 3826 --- [wallet-service] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2026-10-11T12:45:36.555Z  INFO 3826 --- [wallet-service] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-10-11T12:45:36.557Z  INFO 3826 --- [wallet-service] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1191 ms
+2026-10-11T12:45:37.194Z  INFO 3826 --- [wallet-service] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-10-11T12:45:37.271Z  INFO 3826 --- [wallet-service] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-10-11T12:45:37.295Z  INFO 3826 --- [wallet-service] [           main] c.e.wallet.WalletServiceApplication      : Started WalletServiceApplication in 2.426 seconds (process running for 2.937)
+2026-10-11T12:56:09.305Z  INFO 3826 --- [wallet-service] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-11T12:56:09.306Z  INFO 3826 --- [wallet-service] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-11T12:56:09.307Z  INFO 3826 --- [wallet-service] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-10-11T13:05:44.778Z  INFO 3826 --- [wallet-service] [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-10-11T13:05:44.789Z  INFO 3826 --- [wallet-service] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
