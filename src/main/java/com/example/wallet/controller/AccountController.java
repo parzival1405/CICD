@@ -32,6 +32,7 @@ public class AccountController {
     }
 
     // Sửa bài tập 1 (Dễ) - mục 10 "Bài tập tự làm", Bài 03 Giai đoạn 0: GET /api/accounts
+    // (cũng là feature Bước 1 - mục 6 "Thực hành từng bước", Bài 02 Giai đoạn 1)
     @GetMapping
     public List<AccountResponse> list() {
         return service.findAll().stream().map(AccountResponse::from).toList();
