@@ -10,7 +10,7 @@
 | `POST` | `/api/accounts` | Tạo tài khoản | `{"owner":"An"}` | `201` + tài khoản | `400` owner rỗng |
 | `GET` | `/api/accounts` | Liệt kê tài khoản (sắp theo id) | — | `200` + danh sách | — |
 | `GET` | `/api/accounts/{id}` | Xem tài khoản và số dư | — | `200` | `404` không tồn tại |
-| `POST` | `/api/accounts/{id}/deposit` | Nạp tiền | `{"amount":100000}` | `200` + số dư mới | `400` số tiền ≤ 0, `404` |
+| `POST` | `/api/accounts/{id}/deposit` | Nạp tiền (tối đa `wallet.max-deposit` mỗi lần) | `{"amount":100000}` | `200` + số dư mới | `400` số tiền ≤ 0 hoặc vượt hạn mức, `404` |
 | `POST` | `/api/accounts/{id}/withdraw` | Rút tiền | `{"amount":50000}` | `200` + số dư mới | `400`, `404`, `409` không đủ số dư |
 | `GET` | `/actuator/health` | Kiểm tra sức khỏe | — | `200` `{"status":"UP"}` | — |
 | `GET` | `/actuator/info` | Tên và phiên bản đang chạy | — | `200` | — |
@@ -36,6 +36,16 @@ curl -s -X POST localhost:8080/api/accounts -H "Content-Type: application/json" 
 curl -s -X POST localhost:8080/api/accounts/1/deposit -H "Content-Type: application/json" -d '{"amount":100000}'
 curl -s localhost:8080/api/accounts
 ```
+
+<!-- Thêm theo Bài 10 Giai đoạn 1: cấu hình qua biến môi trường -->
+## Cấu hình
+
+| Thuộc tính | Biến môi trường | Mặc định | Ý nghĩa |
+|---|---|---|---|
+| `wallet.max-deposit` | `WALLET_MAXDEPOSIT` | `50000000` | Hạn mức nạp mỗi lần; phải > 0, sai thì ứng dụng không khởi động |
+| `spring.profiles.active` | `SPRING_PROFILES_ACTIVE` | (không) | `dev`: log DEBUG, health chi tiết · `prod`: log INFO, ẩn chi tiết |
+
+Ở local: `cp .env.example .env`, sửa giá trị, rồi `set -a; source .env; set +a` trước khi `java -jar`. Không commit `.env`.
 
 ## Cấu trúc
 

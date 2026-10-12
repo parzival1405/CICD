@@ -4,8 +4,13 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *'   # 01:00 UTC moi ngay = 08:00 gio Viet Nam (chi chay tren nhanh mac dinh)
 
 jobs:
+  # ---------------------------------------------------------------
+  # Job info: thong tin event, runner, context github, output short SHA
+  # ---------------------------------------------------------------
   info:
     runs-on: ubuntu-latest
     outputs:
@@ -18,6 +23,19 @@ jobs:
           echo "Commit: $GITHUB_SHA"
           echo "Nguoi kich hoat: ${{ github.actor }}"
           echo "He dieu hanh runner: $RUNNER_OS"
+
+      # Chi chay khi event la pull_request; voi push/schedule se hien "skipped"
+      - name: In so PR
+        if: github.event_name == 'pull_request'
+        run: echo "Day la PR #${{ github.event.pull_request.number }}"
+
+      # Dump toan bo context github qua bien moi truong
+      # (an toan hon echo '${{ toJSON(github) }}': khong vo cu phap khi co dau ',
+      #  va tranh script injection tu tieu de PR / commit message)
+      - name: Dump github context
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
 
       - name: Thong tin may runner
         run: |
@@ -37,6 +55,9 @@ jobs:
       - name: Dung output cua step truoc
         run: echo "Short SHA la ${{ steps.sha.outputs.short }}"
 
+  # ---------------------------------------------------------------
+  # Job build: chay sau info, dung output short-sha
+  # ---------------------------------------------------------------
   build:
     needs: info
     runs-on: ubuntu-latest
@@ -47,10 +68,36 @@ jobs:
         run: ls -la
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5   # v5 de het canh bao Node.js 20
+        with:
+          fetch-depth: 3            # mac dinh chi lay 1 commit, git log -3 se chi thay 1 dong
 
       - name: Sau khi checkout
         run: |
           ls -la
           echo "Build $APP_NAME tai commit ${{ needs.info.outputs.short-sha }}"
           git log --oneline -3
+
+  # ---------------------------------------------------------------
+  # Job a va b: chay song song voi nhau (va song song voi info)
+  # Job c: chi chay sau khi ca a va b deu xong
+  # ---------------------------------------------------------------
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Job A bat dau luc $(date -u +%T)"
+      - run: sleep 15
+      - run: echo "Job A xong luc $(date -u +%T)"
+
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Job B bat dau luc $(date -u +%T)"
+      - run: sleep 10
+      - run: echo "Job B xong luc $(date -u +%T)"
+
+  c:
+    needs: [a, b]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Job C bat dau luc $(date -u +%T), sau khi A va B deu xong"

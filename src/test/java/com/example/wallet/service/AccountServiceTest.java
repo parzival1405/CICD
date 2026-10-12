@@ -3,6 +3,7 @@ package com.example.wallet.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.example.wallet.config.WalletProperties;
 import com.example.wallet.exception.AccountNotFoundException;
 import com.example.wallet.model.Account;
 import com.example.wallet.service.impl.AccountServiceImpl;
@@ -16,9 +17,20 @@ class AccountServiceTest {
 
     private AccountService service;
 
+    // Sửa theo Bước 2 - mục 6 "Thực hành từng bước", Bài 10 Giai đoạn 1: service cần WalletProperties (hạn mức 1000)
     @BeforeEach
     void setUp() {
-        service = new AccountServiceImpl();
+        service = new AccountServiceImpl(new WalletProperties(new BigDecimal("1000")));
+    }
+
+    // Thêm code Bước 2 - mục 6 "Thực hành từng bước", Bài 10 Giai đoạn 1: test nạp vượt hạn mức
+    @Test
+    void deposit_overLimit_throws() {
+        Long id = service.create("An").getId();
+
+        assertThatThrownBy(() -> service.deposit(id, new BigDecimal("1000.01")))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("han muc");
     }
 
     @Test

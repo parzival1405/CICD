@@ -1,5 +1,6 @@
 package com.example.wallet.service.impl;
 
+import com.example.wallet.config.WalletProperties;
 import com.example.wallet.exception.AccountNotFoundException;
 import com.example.wallet.model.Account;
 import com.example.wallet.service.AccountService;
@@ -16,6 +17,13 @@ public class AccountServiceImpl implements AccountService {
 
     private final Map<Long, Account> accounts = new ConcurrentHashMap<>();
     private final AtomicLong sequence = new AtomicLong();
+
+    // Thêm code Bước 2 - mục 6 "Thực hành từng bước", Bài 10 Giai đoạn 1: hạn mức nạp lấy từ cấu hình
+    private final WalletProperties properties;
+
+    public AccountServiceImpl(WalletProperties properties) {
+        this.properties = properties;
+    }
 
     @Override
     public Account create(String owner) {
@@ -44,6 +52,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public synchronized Account deposit(Long id, BigDecimal amount) {
+        // Thêm code Bước 2 - mục 6 "Thực hành từng bước", Bài 10 Giai đoạn 1: chặn nạp vượt hạn mức mỗi lần
+        if (amount != null && amount.compareTo(properties.maxDeposit()) > 0) {
+            throw new IllegalArgumentException("Vuot han muc nap moi lan: " + properties.maxDeposit());
+        }
         Account account = get(id);
         account.deposit(amount);
         return account;
