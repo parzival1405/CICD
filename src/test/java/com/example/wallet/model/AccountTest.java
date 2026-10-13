@@ -29,7 +29,7 @@ class AccountTest {
     void deposit_increasesBalance() {
         account.deposit(new BigDecimal("100000"));
 
-        assertThat(account.getBalance()).isEqualByComparingTo("999");
+        assertThat(account.getBalance()).isEqualByComparingTo("100000");
     }
 
     @ParameterizedTest
