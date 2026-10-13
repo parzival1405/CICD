@@ -1,3 +1,5 @@
+[![CI](https://github.com/parzival1405/CICD/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/parzival1405/CICD/actions/workflows/ci.yml)
+
 <!-- Thêm feature Bước 3 - mục 6 "Thực hành từng bước", Bài 02 Giai đoạn 1: mô tả API trong README -->
 # wallet-service — vi dien tu mau
 
