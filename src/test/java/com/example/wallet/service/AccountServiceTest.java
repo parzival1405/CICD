@@ -2,35 +2,41 @@ package com.example.wallet.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.example.wallet.config.WalletProperties;
 import com.example.wallet.exception.AccountNotFoundException;
 import com.example.wallet.model.Account;
+import com.example.wallet.repository.AccountRepository;
 import com.example.wallet.service.impl.AccountServiceImpl;
 import java.math.BigDecimal;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-// Thêm code Bước 2 - mục 6 "Thực hành từng bước", Bài 09 Giai đoạn 1: unit test cho AccountService
-// (trong project, lớp thực thi là AccountServiceImpl)
+// Sửa code Bước 4 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 3:
+// service giờ phụ thuộc repository -> unit test dùng mock, không Spring, không DB
+@ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
+
+    @Mock
+    private AccountRepository repository;
 
     private AccountService service;
 
     @BeforeEach
     void setUp() {
-        service = new AccountServiceImpl();
-    }
-
-    @Test
-    void create_assignsIncreasingIds() {
-        Account first = service.create("An");
-        Account second = service.create("Binh");
-
-        assertThat(second.getId()).isGreaterThan(first.getId());
+        service = new AccountServiceImpl(repository, new WalletProperties(new BigDecimal("1000")));
     }
 
     @Test
     void get_unknownId_throwsNotFound() {
+        given(repository.findById(999L)).willReturn(Optional.empty());
+
         assertThatThrownBy(() -> service.get(999L))
             .isInstanceOf(AccountNotFoundException.class)
             .hasMessageContaining("999");
@@ -38,11 +44,20 @@ class AccountServiceTest {
 
     @Test
     void depositThenWithdraw_updatesBalance() {
-        Long id = service.create("An").getId();
+        Account account = new Account("An");
+        given(repository.findById(1L)).willReturn(Optional.of(account));
 
-        service.deposit(id, new BigDecimal("200"));
-        Account result = service.withdraw(id, new BigDecimal("50"));
+        service.deposit(1L, new BigDecimal("200"));
+        service.withdraw(1L, new BigDecimal("50"));
 
-        assertThat(result.getBalance()).isEqualByComparingTo("150");
+        assertThat(account.getBalance()).isEqualByComparingTo("150");
+    }
+
+    @Test
+    void deposit_overLimit_throwsWithoutTouchingRepository() {
+        assertThatThrownBy(() -> service.deposit(1L, new BigDecimal("1000.01")))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("han muc");
+        verifyNoInteractions(repository);
     }
 }
