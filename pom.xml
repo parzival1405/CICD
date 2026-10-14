@@ -20,6 +20,9 @@
 
     <properties>
         <java.version>21</java.version>
+        <!-- Thêm code mục 9 "Lỗi thường gặp", Bài 03 Giai đoạn 3: bản 1.21.3 mặc định dùng Docker API quá cũ,
+             Docker Engine 29+ trả 400 "Could not find a valid Docker environment" -> nâng lên 1.21.x mới nhất -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -35,9 +38,35 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- Thêm code Bước 1 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 3: JPA + PostgreSQL -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Thêm code Bước 1 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 3: Testcontainers chạy PostgreSQL thật khi test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

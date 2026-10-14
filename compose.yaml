@@ -1,0 +1,41 @@
+# Thêm code Bước 5 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 3: app + PostgreSQL
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: wallet
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Hay dat DB_PASSWORD trong file .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d wallet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # Không khai báo ports: DB chỉ truy cập được trong network nội bộ
+    networks:
+      - backend
+
+  app:
+    build: .
+    image: wallet-service:local
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Gọi DB bằng tên service "db", không phải localhost
+      DB_URL: jdbc:postgresql://db:5432/wallet
+      DB_USERNAME: wallet
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+
+volumes:
+  db-data:
+
+networks:
+  backend:

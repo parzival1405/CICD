@@ -1,16 +1,39 @@
 package com.example.wallet.model;
 
 import com.example.wallet.exception.InsufficientBalanceException;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.math.BigDecimal;
 
+// Sửa code Bước 2 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 3: Account thành JPA entity
+@Entity
+@Table(name = "account")
 public class Account {
 
-    private final Long id;
-    private final String owner;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 100)
+    private String owner;
+
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;
 
-    public Account(Long id, String owner) {
-        this.id = id;
+    // Optimistic locking: hai giao dịch cùng sửa một tài khoản -> giao dịch sau bị từ chối thay vì ghi đè
+    @Version
+    private long version;
+
+    protected Account() {
+        // JPA cần constructor không tham số
+    }
+
+    public Account(String owner) {
         this.owner = owner;
         this.balance = BigDecimal.ZERO;
     }
