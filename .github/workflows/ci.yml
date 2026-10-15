@@ -144,3 +144,49 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
       - run: ./mvnw -B -ntp verify
+  deploy-staging:
+    name: Deploy staging
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, wsl-lab]
+    timeout-minutes: 15
+    environment:
+      name: staging
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    steps:
+      - name: Checkout deploy files
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            deploy
+            scripts
+
+      - name: Prepare SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+
+      - name: Upload deploy files
+        run: |
+          scp -i "$RUNNER_TEMP/deploy_key" -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
+            deploy/compose.yaml deploy/deploy.sh deploy/rollback.sh \
+            "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/opt/wallet/staging/"
+
+      - name: Deploy
+        run: |
+          SHORT_TAG="sha-${GITHUB_SHA::7}"
+          echo "Deploy $SHORT_TAG"
+          ssh -i "$RUNNER_TEMP/deploy_key" -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
+            "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}" \
+            "bash /opt/wallet/staging/deploy.sh '$SHORT_TAG'"
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/known_hosts"
