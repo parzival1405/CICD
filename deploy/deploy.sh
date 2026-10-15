@@ -34,10 +34,40 @@ wait_healthy() {
   return 1
 }
 
+backup_db() {
+  local db_id file
+  db_id="$(compose "$NEW_TAG" ps -q db)"
+  if [[ -z "$db_id" ]]; then
+    log "DB chua chay (lan deploy dau tien), bo qua backup"
+    return 0
+  fi
+
+  mkdir -p backups && chmod 700 backups
+  file="backups/${ENV_NAME}-$(date +%Y%m%d-%H%M%S)-before-${NEW_TAG}.dump"
+
+  if ! compose "$NEW_TAG" exec -T db pg_dump -U wallet -d wallet -Fc > "$file.part"; then
+    rm -f "$file.part"
+    log "LOI: backup DB that bai, huy deploy"
+    return 1
+  fi
+  if [[ ! -s "$file.part" ]]; then
+    rm -f "$file.part"
+    log "LOI: file backup rong, huy deploy"
+    return 1
+  fi
+
+  mv "$file.part" "$file"
+  chmod 600 "$file"
+  log "Backup DB: $file ($(du -h "$file" | cut -f1))"
+
+  ls -1t backups/*.dump | tail -n +11 | xargs -r rm --
+}
+
 exec 9> .deploy.lock
 flock -n 9 || { echo "Dang co deploy khac chay o $ENV_NAME" >&2; exit 3; }
 
 log "Bat dau deploy $NEW_TAG (hien tai: ${PREV_TAG:-chua co})"
+backup_db || exit 1
 compose "$NEW_TAG" pull app
 compose "$NEW_TAG" up -d
 
