@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: wallet
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Thieu DB_PASSWORD trong .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d wallet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    image: ghcr.io/parzival1405/wallet-service:${APP_TAG:?Thieu APP_TAG}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/wallet
+      DB_USERNAME: wallet
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: prod
+      WALLET_MAXDEPOSIT: ${WALLET_MAXDEPOSIT:-50000000}
+    ports:
+      - "127.0.0.1:${APP_PORT:?Thieu APP_PORT}:8080"
+    restart: unless-stopped
+
+volumes:
+  db-data:
