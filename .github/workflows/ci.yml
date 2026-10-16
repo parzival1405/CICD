@@ -187,6 +187,16 @@ jobs:
             "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}" \
             "bash /opt/wallet/staging/deploy.sh '$SHORT_TAG'"
 
+      - name: Smoke test
+        id: smoke
+        run: ./scripts/smoke-test.sh "${{ vars.APP_URL }}"
+
+      - name: Rollback on smoke failure
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: |
+          ssh -i "$RUNNER_TEMP/deploy_key" -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
+            "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}" "bash /opt/wallet/staging/rollback.sh"
+            
       - name: Remove SSH key
         if: always()
         run: rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/known_hosts"
