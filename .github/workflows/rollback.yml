@@ -1,0 +1,70 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Moi truong can rollback
+        type: choice
+        options: [staging, production]
+        required: true
+      tag:
+        description: "Staging: tag can quay ve (bo trong = previous_tag). Production: bo qua, luon chuyen ve mau con lai."
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Rollback ${{ inputs.environment }}
+    runs-on: [self-hosted, wsl-lab]
+    timeout-minutes: 10
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+
+      - name: Prepare SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+
+      - name: Rollback
+        env:
+          TARGET_ENV: ${{ inputs.environment }}
+          TAG: ${{ inputs.tag }}
+          REMOTE: ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}
+        run: |
+          SSH_OPTS=(-i "$RUNNER_TEMP/deploy_key" -o "UserKnownHostsFile=$RUNNER_TEMP/known_hosts")
+          if [[ "$TARGET_ENV" == "production" ]]; then
+            CMD="bash /opt/wallet/production/bluegreen.sh switch"
+          elif [[ -n "$TAG" ]]; then
+            if [[ ! "$TAG" =~ ^[A-Za-z0-9._-]{1,128}$ ]]; then
+              echo "Tag khong hop le" >&2
+              exit 2
+            fi
+            CMD="bash /opt/wallet/staging/deploy.sh '$TAG'"
+          else
+            CMD="bash /opt/wallet/staging/rollback.sh"
+          fi
+          echo "Chay: $CMD"
+          ssh "${SSH_OPTS[@]}" "$REMOTE" "$CMD"
+
+      - name: Smoke test
+        run: ./scripts/smoke-test.sh "${{ vars.APP_URL }}"
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/known_hosts"
