@@ -1,0 +1,50 @@
+x-app: &app
+  depends_on:
+    db:
+      condition: service_healthy
+  environment:
+    DB_URL: jdbc:postgresql://db:5432/wallet
+    DB_USERNAME: wallet
+    DB_PASSWORD: ${DB_PASSWORD:?Thieu DB_PASSWORD}
+    SPRING_PROFILES_ACTIVE: prod
+    WALLET_MAXDEPOSIT: ${WALLET_MAXDEPOSIT:-50000000}
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: wallet
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d wallet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  app-blue:
+    <<: *app
+    image: ghcr.io/<username>/wallet-service:${BLUE_TAG:-none}
+    ports:
+      - "127.0.0.1:8091:8080"
+
+  app-green:
+    <<: *app
+    image: ghcr.io/<username>/wallet-service:${GREEN_TAG:-none}
+    ports:
+      - "127.0.0.1:8092:8080"
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "127.0.0.1:${APP_PORT:?Thieu APP_PORT}:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    restart: unless-stopped
+
+volumes:
+  db-data:
