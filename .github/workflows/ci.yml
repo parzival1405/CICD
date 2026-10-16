@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -14,18 +14,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -34,19 +32,8 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Show versions
-        run: ./mvnw -v
-
       - name: Build and test
         run: ./mvnw -B -ntp verify
-
-      - name: Upload jar
-        uses: actions/upload-artifact@v4
-        with:
-          name: wallet-service-jar-${{ github.sha }}
-          path: target/*.jar
-          if-no-files-found: error
-          retention-days: 7
 
       - name: Upload test reports
         if: ${{ !cancelled() }}
@@ -59,20 +46,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Write job summary
-        if: ${{ !cancelled() }}
-        run: |
-          {
-            echo "## Kết quả build"
-            echo "- Commit: \`${GITHUB_SHA::7}\`"
-            echo "- Event: ${{ github.event_name }}"
-            echo ""
-            echo "### Tests"
-            echo '```'
-            cat target/surefire-reports/*.txt target/failsafe-reports/*.txt 2>/dev/null \
-              | grep -E 'Tests run:' || echo "Không tìm thấy báo cáo test"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
   docker:
     name: Docker image
     needs: build
@@ -82,11 +55,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -108,7 +78,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Build and push
-        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -118,32 +87,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Summary
-        run: |
-          {
-            echo "## Docker image"
-            echo "Push: ${{ github.event_name != 'pull_request' }}"
-            echo "Digest: \`${{ steps.build.outputs.digest }}\`"
-            echo '```'
-            echo "${{ steps.meta.outputs.tags }}"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-  compat:
-    name: Compat Java ${{ matrix.java }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        java: ['21', '25']
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: ${{ matrix.java }}
-          cache: maven
-      - run: ./mvnw -B -ntp verify
   deploy-staging:
     name: Deploy staging
     needs: docker
@@ -157,8 +100,7 @@ jobs:
       group: deploy-staging
       cancel-in-progress: false
     steps:
-      - name: Checkout deploy files
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             deploy
@@ -172,20 +114,15 @@ jobs:
           install -m 600 /dev/null "$RUNNER_TEMP/deploy_key"
           printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/deploy_key"
           printf '%s\n' "$SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+          echo "SSH_OPTS=-i $RUNNER_TEMP/deploy_key -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts" >> "$GITHUB_ENV"
+          echo "REMOTE=${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
       - name: Upload deploy files
-        run: |
-          scp -i "$RUNNER_TEMP/deploy_key" -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
-            deploy/compose.yaml deploy/deploy.sh deploy/rollback.sh \
-            "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/opt/wallet/staging/"
+        run: scp $SSH_OPTS deploy/compose.yaml deploy/deploy.sh deploy/rollback.sh "$REMOTE:/opt/wallet/staging/"
 
       - name: Deploy
-        run: |
-          SHORT_TAG="sha-${GITHUB_SHA::7}"
-          echo "Deploy $SHORT_TAG"
-          ssh -i "$RUNNER_TEMP/deploy_key" -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
-            "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}" \
-            "bash /opt/wallet/staging/deploy.sh '$SHORT_TAG'"
+        run: ssh $SSH_OPTS "$REMOTE" "bash /opt/wallet/staging/deploy.sh '$IMAGE_TAG'"
 
       - name: Smoke test
         id: smoke
@@ -193,10 +130,84 @@ jobs:
 
       - name: Rollback on smoke failure
         if: failure() && steps.smoke.outcome == 'failure'
+        run: ssh $SSH_OPTS "$REMOTE" "bash /opt/wallet/staging/rollback.sh"
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/known_hosts"
+
+  deploy-production:
+    name: Deploy production
+    needs: deploy-staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, wsl-lab]
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            deploy
+            scripts
+
+      - name: Prepare SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
-          ssh -i "$RUNNER_TEMP/deploy_key" -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
-            "${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}" "bash /opt/wallet/staging/rollback.sh"
-            
+          install -m 600 /dev/null "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+          echo "SSH_OPTS=-i $RUNNER_TEMP/deploy_key -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts" >> "$GITHUB_ENV"
+          echo "REMOTE=${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Upload deploy files
+        run: scp $SSH_OPTS deploy/compose.bluegreen.yaml deploy/bluegreen.sh "$REMOTE:/opt/wallet/production/"
+
+      - name: Stage on idle color
+        run: ssh $SSH_OPTS "$REMOTE" "bash /opt/wallet/production/bluegreen.sh stage '$IMAGE_TAG'"
+
+      - name: Smoke test preview
+        id: smoke_preview
+        run: |
+          ACTIVE=$(ssh $SSH_OPTS "$REMOTE" "cat /opt/wallet/production/active_color 2>/dev/null || echo none")
+          if [[ "$ACTIVE" == "blue" ]]; then PORT=8092; else PORT=8091; fi
+          ./scripts/smoke-test.sh "http://localhost:$PORT"
+
+      - name: Abort on preview failure
+        if: failure() && steps.smoke_preview.outcome == 'failure'
+        run: ssh $SSH_OPTS "$REMOTE" "bash /opt/wallet/production/bluegreen.sh abort"
+
+      - name: Switch traffic
+        id: switch
+        run: ssh $SSH_OPTS "$REMOTE" "bash /opt/wallet/production/bluegreen.sh switch"
+
+      - name: Smoke test production
+        id: smoke_prod
+        run: ./scripts/smoke-test.sh "${{ vars.APP_URL }}"
+
+      - name: Roll back traffic
+        if: failure() && steps.smoke_prod.outcome == 'failure'
+        run: ssh $SSH_OPTS "$REMOTE" "bash /opt/wallet/production/bluegreen.sh switch"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Production"
+            echo "- Image: \`$IMAGE_TAG\`"
+            echo "- Duyệt bởi: xem tab Environments → production"
+            echo '```'
+            ssh $SSH_OPTS "$REMOTE" "bash /opt/wallet/production/bluegreen.sh status" 2>&1 | head -20 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Remove SSH key
         if: always()
         run: rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/known_hosts"
