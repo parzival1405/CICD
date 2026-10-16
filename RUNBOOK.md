@@ -101,3 +101,4 @@ Với 1 server dùng cổng `8080`; với 3 server lặp lại cho `8081`, `8082
 2. Kiểm tra trạng thái: `cat /opt/wallet/<env>/current_tag`, `curl .../actuator/health/readiness`.
 3. Nếu thấy "ROLLBACK THAT BAI": chạy `./deploy.sh <tag ổn định gần nhất trong releases.log>`.
 4. Lỗi do cấu hình môi trường (.env) thì rollback image KHÔNG giải quyết được — sửa .env rồi deploy lại.
+test
