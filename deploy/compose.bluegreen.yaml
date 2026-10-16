@@ -28,13 +28,13 @@ services:
 
   app-blue:
     <<: *app
-    image: ghcr.io/<username>/wallet-service:${BLUE_TAG:-none}
+    image: ghcr.io/parzival1405/wallet-service:${BLUE_TAG:-none}
     ports:
       - "127.0.0.1:8091:8080"
 
   app-green:
     <<: *app
-    image: ghcr.io/<username>/wallet-service:${GREEN_TAG:-none}
+    image: ghcr.io/parzival1405/wallet-service:${GREEN_TAG:-none}
     ports:
       - "127.0.0.1:8092:8080"
 
