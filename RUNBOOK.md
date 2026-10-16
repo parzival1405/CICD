@@ -85,3 +85,19 @@ Với 1 server dùng cổng `8080`; với 3 server lặp lại cho `8081`, `8082
 | `UnsupportedClassVersionError` | Máy chạy Java cũ hơn 21 | Dùng Java 21 |
 | `curl: (7) Failed to connect` | Ứng dụng chưa khởi động xong hoặc đã chết | Đợi thêm; xem log (`/d/fake-server/wallet/logs/<cong>.log` với 3 server) |
 | `/actuator/info` ra version cũ | Chạy nhầm file jar | Kiểm tra đường dẫn jar trong lệnh `java -jar` |
+
+## Khôi phục database từ backup (phương án cuối cùng)
+
+⚠️ Mất toàn bộ dữ liệu ghi sau thời điểm backup. Cần người phụ trách đồng ý.
+1. Thông báo, dừng nhận traffic: `docker compose --project-name wallet-<env> stop app`
+2. Chọn file: `ls -lt /opt/wallet/<env>/backups/`
+3. Khôi phục:
+   `docker compose --project-name wallet-<env> exec -T db pg_restore -U wallet -d wallet --clean --if-exists < backups/<file>.dump`
+4. Chạy lại phiên bản ứng dụng tương ứng thời điểm backup: `./deploy.sh <tag trong tên file>`
+5. Kiểm tra dữ liệu, ghi lại sự cố.
+   
+## Khi deploy staging/production fail
+1. Mở log job Deploy: tìm "LOI:" và 50 dòng log app được in kèm.
+2. Kiểm tra trạng thái: `cat /opt/wallet/<env>/current_tag`, `curl .../actuator/health/readiness`.
+3. Nếu thấy "ROLLBACK THAT BAI": chạy `./deploy.sh <tag ổn định gần nhất trong releases.log>`.
+4. Lỗi do cấu hình môi trường (.env) thì rollback image KHÔNG giải quyết được — sửa .env rồi deploy lại.
