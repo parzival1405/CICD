@@ -32,8 +32,28 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build and test
-        run: ./mvnw -B -ntp verify
+      - name: Build, test and analyze
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [[ -n "$SONAR_TOKEN" ]]; then
+            ./mvnw -B -ntp verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.organization=${{ vars.SONAR_ORG }} \
+              -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+              -Dsonar.qualitygate.wait=true
+          else
+            echo "Khong co SONAR_TOKEN (vi du PR tu fork) - chi build va test"
+            ./mvnw -B -ntp verify
+          fi
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: target/site/jacoco/
+          retention-days: 7
 
       - name: Upload test reports
         if: ${{ !cancelled() }}
@@ -56,6 +76,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR

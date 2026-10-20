@@ -60,4 +60,28 @@ class AccountServiceTest {
             .hasMessageContaining("han muc");
         verifyNoInteractions(repository);
     }
+
+    // Thêm code Bước 3 - mục 6 "Thực hành từng bước", Bài 01 Giai đoạn 6: phủ đủ 3 nhánh của withdrawFee
+    // để quality gate (new code coverage >= 80%) PASSED
+    @Test
+    void withdrawFee_overOneMillion_chargesZeroPointOnePercent() {
+        assertThat(withdrawFee("2000000")).isEqualByComparingTo("2000");
+    }
+
+    @Test
+    void withdrawFee_overOneHundredThousand_chargesFlatFee() {
+        // biên: đúng 1.000.000 chưa vượt mốc trên -> vẫn phí cố định
+        assertThat(withdrawFee("1000000")).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    void withdrawFee_upToOneHundredThousand_isFree() {
+        // biên: đúng 100.000 chưa vượt mốc dưới -> miễn phí
+        assertThat(withdrawFee("100000")).isEqualByComparingTo("0");
+    }
+
+    // withdrawFee chỉ có ở AccountServiceImpl, chưa đưa vào interface AccountService
+    private BigDecimal withdrawFee(String amount) {
+        return ((AccountServiceImpl) service).withdrawFee(new BigDecimal(amount));
+    }
 }
