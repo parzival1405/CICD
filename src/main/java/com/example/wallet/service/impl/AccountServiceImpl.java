@@ -60,4 +60,16 @@ public class AccountServiceImpl implements AccountService {
         account.withdraw(amount);
         return account;
     }
+
+    // Thêm code Bước 3 - mục 6 "Thực hành từng bước", Bài 01 Giai đoạn 6: phí rút tiền 3 nhánh,
+    // dùng để thấy quality gate FAILED khi new code chưa có test
+    public BigDecimal withdrawFee(BigDecimal amount) {
+        if (amount.compareTo(new BigDecimal("1000000")) > 0) {
+            return amount.multiply(new BigDecimal("0.001"));
+        }
+        if (amount.compareTo(new BigDecimal("100000")) > 0) {
+            return new BigDecimal("1000");
+        }
+        return BigDecimal.ZERO;
+    }
 }

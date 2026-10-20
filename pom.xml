@@ -14,7 +14,9 @@
     <groupId>com.example</groupId>
     <artifactId>wallet-service</artifactId>
     <!-- Sửa bài tập 1 (Dễ) - mục 10 "Bài tập tự làm", Bài 03 Giai đoạn 0: release 0.0.3 (thêm GET /api/accounts) -->
-    <version>0.0.3</version>
+    <!-- Sửa code Bước 3 - mục 6 "Thực hành từng bước", Bài 01 Giai đoạn 6: đổi version để SonarQube tạo mốc
+         New Code = Previous version (code thay đổi kể từ lần phân tích 0.0.3) -->
+    <version>0.0.4</version>
     <name>wallet-service</name>
     <description>Vi dien tu mau cho lo trinh CI/CD</description>
 
@@ -91,6 +93,54 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <!-- Thêm code Bước 1 - mục 6 "Thực hành từng bước", Bài 01 Giai đoạn 6:
+                 JaCoCo đo coverage unit (surefire) + IT (failsafe); verify fail nếu LINE < 70% hoặc BRANCH < 60% -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.60</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <!-- Thêm code Bước 5 - mục 6 "Thực hành từng bước", Bài 08 Giai đoạn 1:
                  enforcer chặn build sai môi trường (Java >= 21, Maven >= 3.9, không xung đột phiên bản thư viện) -->
