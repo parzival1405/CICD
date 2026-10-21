@@ -84,6 +84,31 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      # Thêm code Bước 2 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 6: lưu SBOM CycloneDX của ứng dụng
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}
+          path: target/classes/META-INF/sbom/application.cdx.json
+          retention-days: 30
+
+  # Thêm code Bước 3 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 6: quét secret bằng Gitleaks.
+  # gitleaks-action: PR/push chỉ quét các commit mới; workflow_dispatch quét toàn bộ lịch sử.
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read   # action gọi API liệt kê commit của PR
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   docker:
     name: Docker image
     needs: build
@@ -116,6 +141,22 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+      # Sửa code Bước 2 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 6: build -> scan -> push,
+      # image có CVE HIGH/CRITICAL đã có bản vá thì không bao giờ được push
+      - name: Build image for scanning
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          load: true
+          tags: wallet-service:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image (Trivy)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.58.1 image \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 wallet-service:scan
+
       - name: Build and push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
@@ -124,7 +165,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          sbom: true
+          provenance: mode=max
 
   deploy-staging:
     name: Deploy staging
