@@ -173,6 +173,13 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Thêm code Bước 1 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 6: SBOM CycloneDX của ứng dụng.
+                 Version + execution do spring-boot-starter-parent quản lý: tạo META-INF/sbom/application.cdx.json
+                 ở phase generate-resources và Spring Boot đóng file này vào jar -->
+            <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
 </project>
