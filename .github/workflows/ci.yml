@@ -18,6 +18,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  sca:
+    name: SCA (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan
+        run: |
+          docker run --rm -v "$PWD:/src:ro" aquasec/trivy:0.58.1 fs \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            /src
+
   build:
     name: Build & Test
     runs-on: ubuntu-latest

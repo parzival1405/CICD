@@ -7,7 +7,9 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.6</version>
+        <!-- Sửa code mục 3.3 "Xử lý một CVE", Bài 02 Giai đoạn 6: Trivy báo CVE-2026-22731, CVE-2026-22733
+             (actuator, vá ở 3.5.12) -> nâng bản patch Spring Boot thay vì ghi đè từng thư viện -->
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -25,6 +27,10 @@
         <!-- Thêm code mục 9 "Lỗi thường gặp", Bài 03 Giai đoạn 3: bản 1.21.3 mặc định dùng Docker API quá cũ,
              Docker Engine 29+ trả 400 "Could not find a valid Docker environment" -> nâng lên 1.21.x mới nhất -->
         <testcontainers.version>1.21.4</testcontainers.version>
+        <!-- Sửa code mục 3.3 "Xử lý một CVE", Bài 02 Giai đoạn 6: Spring Boot 3.5.16 vẫn quản lý pgjdbc 42.7.11,
+             còn CVE-2026-54291 (vá ở 42.7.12) -> ghi đè lên 42.7.13 (bản Spring Boot 4.0.x đang dùng).
+             Bỏ dòng này khi Spring Boot quản lý >= 42.7.12 -->
+        <postgresql.version>42.7.13</postgresql.version>
     </properties>
 
     <dependencies>
