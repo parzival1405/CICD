@@ -25,14 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Sửa code Bước 2 - mục 6 "Thực hành từng bước", Bài 05 Giai đoạn 6: áp dụng ngoại lệ có hạn (.trivyignore.yaml)
       - name: Trivy filesystem scan
         run: |
           docker run --rm -v "$PWD:/src:ro" aquasec/trivy:0.58.1 fs \
-            --scanners vuln \
-            --severity HIGH,CRITICAL \
-            --ignore-unfixed \
-            --exit-code 1 \
-            /src
+            --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+            --ignorefile /src/.trivyignore.yaml --exit-code 1 /src
 
   build:
     name: Build & Test
@@ -111,7 +109,9 @@ jobs:
 
   docker:
     name: Docker image
-    needs: build
+    # Sửa code Bước 1 - mục 6 "Thực hành từng bước", Bài 05 Giai đoạn 6: image chỉ build/push khi mọi gate xanh
+    # -> deploy-staging (needs: docker) gián tiếp phụ thuộc build, sca, secrets
+    needs: [build, sca, secrets]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -152,10 +152,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Sửa code Bước 2 - mục 6 "Thực hành từng bước", Bài 05 Giai đoạn 6: quét image dùng chung file ngoại lệ với job sca
       - name: Scan image (Trivy)
         run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.58.1 image \
-            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 wallet-service:scan
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/src:ro" aquasec/trivy:0.58.1 image \
+            --severity HIGH,CRITICAL --ignore-unfixed \
+            --ignorefile /src/.trivyignore.yaml --exit-code 1 wallet-service:scan
 
       - name: Build and push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2

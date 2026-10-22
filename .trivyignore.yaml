@@ -1,0 +1,9 @@
+# Thêm code Bước 2 - mục 6 "Thực hành từng bước", Bài 05 Giai đoạn 6: ngoại lệ có hạn cho Trivy (job sca + quét image).
+# Mỗi mục: ID cụ thể, lý do + biện pháp giảm thiểu, người duyệt, ticket, expired_at (tối đa 90 ngày, CRITICAL 14 ngày).
+# Quy trình: SECURITY-EXCEPTIONS.md. Mục dưới chỉ là VÍ DỤ MẪU - chỉ thêm ID thật khi cần.
+vulnerabilities:
+  - id: CVE-0000-00000
+    statement: >-
+      VI DU: thu vien X chi dung o test; khong co trong image production.
+      Nguoi duyet: <ten>. Ticket: SEC-123.
+    expired_at: 2026-12-31
