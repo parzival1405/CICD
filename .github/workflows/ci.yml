@@ -32,7 +32,7 @@ jobs:
       # An toàn khi nghi ngờ: bước lọc bị bỏ qua (không phải PR) hoặc lỗi -> true -> chạy đủ
       code: ${{ steps.filter.outcome != 'success' || steps.filter.outputs.code == 'true' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Filter changed paths
         id: filter
         if: github.event_name == 'pull_request'
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Sửa code Bước 2 - mục 6 "Thực hành từng bước", Bài 05 Giai đoạn 6: áp dụng ngoại lệ có hạn (.trivyignore.yaml)
       - name: Trivy filesystem scan
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -137,7 +137,7 @@ jobs:
       contents: read
       pull-requests: read   # action gọi API liệt kê commit của PR
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
@@ -156,7 +156,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Action bên thứ ba ghim theo commit SHA (tag có thể bị dời sang code khác) - SonarQube rule githubactions:S7637
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
@@ -221,7 +221,7 @@ jobs:
       group: deploy-staging
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: |
             deploy
@@ -270,7 +270,7 @@ jobs:
       group: deploy-production
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: |
             deploy
