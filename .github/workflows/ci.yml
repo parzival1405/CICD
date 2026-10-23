@@ -18,8 +18,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Bỏ qua job nặng (build, sca, docker) khi PR/push chỉ đổi file không ảnh hưởng ứng dụng.
+  # Lọc ở cấp job, KHÔNG dùng paths-ignore ở `on:`: workflow luôn chạy nên required checks luôn được báo về,
+  # job bị skip bằng `if:` được tính là đạt -> PR không bị kẹt "Waiting for status to be reported".
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read   # paths-filter lấy danh sách file của PR qua API
+    outputs:
+      # An toàn khi nghi ngờ: bước lọc bị bỏ qua (tag v*, chạy tay) hoặc lỗi -> true -> chạy đủ
+      code: ${{ steps.filter.outcome != 'success' || steps.filter.outputs.code == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Filter changed paths
+        id: filter
+        if: github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          # every: file chỉ tính là "code" khi khớp TẤT CẢ mẫu = nằm ngoài mọi vùng được phép bỏ qua.
+          # Chỉ liệt kê vùng ĐƯỢC BỎ QUA; file ở chỗ khác (kể cả thư mục mới) -> code=true -> chạy đủ.
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '**'
+              - '!k8s/**'
+              - '!deploy/**'
+              - '!docs/**'
+              - '!**/*.md'
+
   sca:
     name: SCA (Trivy)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -34,6 +68,8 @@ jobs:
 
   build:
     name: Build & Test
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -92,6 +128,7 @@ jobs:
 
   # Thêm code Bước 3 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 6: quét secret bằng Gitleaks.
   # gitleaks-action: PR/push chỉ quét các commit mới; workflow_dispatch quét toàn bộ lịch sử.
+  # Không phụ thuộc job changes: LUÔN chạy (rẻ, và k8s/ là nơi dễ lỡ commit Secret thật).
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest
@@ -110,7 +147,8 @@ jobs:
   docker:
     name: Docker image
     # Sửa code Bước 1 - mục 6 "Thực hành từng bước", Bài 05 Giai đoạn 6: image chỉ build/push khi mọi gate xanh
-    # -> deploy-staging (needs: docker) gián tiếp phụ thuộc build, sca, secrets
+    # -> deploy-staging (needs: docker) gián tiếp phụ thuộc build, sca, secrets.
+    # build/sca bị skip (chỉ đổi k8s/, docs/, *.md) -> docker và các job deploy tự skip theo.
     needs: [build, sca, secrets]
     runs-on: ubuntu-latest
     timeout-minutes: 20
