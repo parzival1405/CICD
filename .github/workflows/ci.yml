@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload coverage report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.sha }}
           path: target/site/jacoco/
@@ -109,7 +109,7 @@ jobs:
 
       - name: Upload test reports
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports-${{ github.sha }}
           path: |
@@ -120,7 +120,7 @@ jobs:
 
       # Thêm code Bước 2 - mục 6 "Thực hành từng bước", Bài 03 Giai đoạn 6: lưu SBOM CycloneDX của ứng dụng
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-${{ github.sha }}
           path: target/classes/META-INF/sbom/application.cdx.json
