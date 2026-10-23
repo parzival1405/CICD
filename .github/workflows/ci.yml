@@ -1,11 +1,10 @@
 name: CI/CD
 
 on:
+  # Không dùng paths-ignore: mọi commit trên main đều build image sha-<commit> (Bài 04-07 lấy TAG từ HEAD)
   push:
     branches: [main]
     tags: ['v*']
-    paths-ignore:
-      - '**.md'
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -18,7 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Bỏ qua job nặng (build, sca, docker) khi PR/push chỉ đổi file không ảnh hưởng ứng dụng.
+  # Chỉ trên PULL REQUEST: bỏ qua job nặng (build, sca, docker) khi PR chỉ đổi file không ảnh hưởng ứng dụng.
+  # Push main / tag / chạy tay luôn chạy đủ -> mọi commit trên main đều có image sha-<commit>.
   # Lọc ở cấp job, KHÔNG dùng paths-ignore ở `on:`: workflow luôn chạy nên required checks luôn được báo về,
   # job bị skip bằng `if:` được tính là đạt -> PR không bị kẹt "Waiting for status to be reported".
   changes:
@@ -29,13 +29,13 @@ jobs:
       contents: read
       pull-requests: read   # paths-filter lấy danh sách file của PR qua API
     outputs:
-      # An toàn khi nghi ngờ: bước lọc bị bỏ qua (tag v*, chạy tay) hoặc lỗi -> true -> chạy đủ
+      # An toàn khi nghi ngờ: bước lọc bị bỏ qua (không phải PR) hoặc lỗi -> true -> chạy đủ
       code: ${{ steps.filter.outcome != 'success' || steps.filter.outputs.code == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - name: Filter changed paths
         id: filter
-        if: github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'pull_request'
         continue-on-error: true
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
@@ -148,7 +148,7 @@ jobs:
     name: Docker image
     # Sửa code Bước 1 - mục 6 "Thực hành từng bước", Bài 05 Giai đoạn 6: image chỉ build/push khi mọi gate xanh
     # -> deploy-staging (needs: docker) gián tiếp phụ thuộc build, sca, secrets.
-    # build/sca bị skip (chỉ đổi k8s/, docs/, *.md) -> docker và các job deploy tự skip theo.
+    # PR chỉ đổi k8s/, deploy/, docs/, *.md -> build/sca bị skip -> docker tự skip theo (deploy vốn chỉ chạy trên push main).
     needs: [build, sca, secrets]
     runs-on: ubuntu-latest
     timeout-minutes: 20
