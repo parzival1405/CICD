@@ -24,6 +24,8 @@ spec:
       labels:
         app: wallet-service
     spec:
+      imagePullSecrets:          # ← thêm đoạn này
+        - name: ghcr-pull-server-kubenetes
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
