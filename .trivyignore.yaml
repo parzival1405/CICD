@@ -7,3 +7,18 @@ vulnerabilities:
       VI DU: thu vien X chi dung o test; khong co trong image production.
       Nguoi duyet: <ten>. Ticket: SEC-123.
     expired_at: 2026-12-31
+  # spring-webmvc 6.2.19: chỉ vá ở Spring Framework 7.0.9 (= Spring Boot 4) -> không nâng được trong dòng 3.5.x.
+  - id: CVE-2026-47884
+    statement: >-
+      CRITICAL - RCE qua XsltView. Khong reachable: app chi co @RestController tra JSON,
+      khong dung XsltView/javax.xml.transform, khong co template engine (kiem tra 2026-10-23).
+      Ke hoach: nang Spring Boot 4 truoc khi het han. Nguoi duyet: parzival1405 (duyet khi review PR).
+      Ticket: PR fix/image-cves.
+    expired_at: 2026-11-06
+  - id: CVE-2026-47890
+    statement: >-
+      CRITICAL - hong luong Server-Sent Events voi view. Khong reachable: app khong dung SseEmitter,
+      ServerSentEvent, text/event-stream hay spring-webflux (kiem tra 2026-10-23).
+      Ke hoach: nang Spring Boot 4 truoc khi het han. Nguoi duyet: parzival1405 (duyet khi review PR).
+      Ticket: PR fix/image-cves.
+    expired_at: 2026-11-06
