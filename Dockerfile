@@ -16,7 +16,10 @@ COPY --from=build /workspace/target/*.jar app.jar
 RUN java -Djarmode=tools -jar app.jar extract --layers --launcher --destination layers
 
 # ---------- Stage 3: runtime ----------
-FROM eclipse-temurin:21-jre
+# Sửa code mục 9 "Lỗi thường gặp", Bài 03 Giai đoạn 6: 21-jre (Ubuntu 26.04) kèm /usr/bin/pebble build bằng
+# Go 1.27.1 có 4 CVE HIGH chưa được vá trong base image -> dùng biến thể Ubuntu 24.04 LTS (không có pebble).
+# Quay lại 21-jre khi bản Ubuntu 26.04 của eclipse-temurin đã vá.
+FROM eclipse-temurin:21-jre-noble
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
